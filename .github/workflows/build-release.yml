@@ -62,6 +62,7 @@ jobs:
           cd $SDK_HOME
           echo "Configuring OpenWrt SDK..."
           rm -rf dl feeds
+          mkdir -p $CACHE_DIR/dl $CACHE_DIR/feeds
           ln -sf $CACHE_DIR/dl dl
           ln -sf $CACHE_DIR/feeds feeds
           cp feeds.conf.default feeds.conf
@@ -71,7 +72,8 @@ jobs:
           sed -i 's#git.openwrt.org/feed/telephony#github.com/openwrt/telephony#' feeds.conf
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
+          echo "Feeds configured successfully."
+          
       - name: Build Package
         run: |
           cd $SDK_HOME
