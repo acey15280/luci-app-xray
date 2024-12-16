@@ -39,7 +39,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            ccache gettext libncurses5-dev xsltproc xz-utils tar zstd wget curl
+            ccache gettext libncurses5-dev xsltproc xz-utils tar zstd wget curl build-essential
 
       - name: Prepare Directories
         run: |
@@ -79,10 +79,11 @@ jobs:
           cd $SDK_HOME
           echo "Linking source to SDK package directory..."
           ln -sf $GITHUB_WORKSPACE package/${{ env.PACKAGE_NAME }}
+          echo "Cleaning previous builds..."
+          make package/${{ env.PACKAGE_NAME }}/clean V=s
           echo "Starting package build..."
           make defconfig
-          make package/${{ env.PACKAGE_NAME }}/clean
-          make package/${{ env.PACKAGE_NAME }}/compile V=s
+          make package/${{ env.PACKAGE_NAME }}/compile -j1 V=s
           echo "Build completed. Listing output files..."
           find bin/ -type f -name "*.ipk" -exec ls -lh {} \;
           find bin/ -type f -name "*.ipk" -exec cp {} $GITHUB_WORKSPACE/ \;
