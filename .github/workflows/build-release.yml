@@ -39,7 +39,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            ccache gettext libncurses5-dev xsltproc xz-utils tar zstd wget
+            ccache gettext libncurses5-dev xsltproc xz-utils tar zstd wget curl
 
       - name: Prepare Directories
         run: |
@@ -49,13 +49,19 @@ jobs:
       - name: Download and Extract SDK
         run: |
           cd $CACHE_DIR/sdk
+          echo "Downloading SDK from ${{ matrix.sdk_url }}"
           wget -c ${{ matrix.sdk_url }} -O openwrt-sdk.tar.xz
-          sha256sum openwrt-sdk.tar.xz
+          echo "Verifying SDK integrity..."
+          file openwrt-sdk.tar.xz
           tar -xJf openwrt-sdk.tar.xz -C $SDK_HOME --strip=1
+          echo "SDK extracted to $SDK_HOME"
+          chmod -R 755 $SDK_HOME
 
       - name: Configure OpenWrt SDK
         run: |
           cd $SDK_HOME
+          echo "Configuring OpenWrt SDK..."
+          rm -rf dl feeds
           ln -sf $CACHE_DIR/dl dl
           ln -sf $CACHE_DIR/feeds feeds
           cp feeds.conf.default feeds.conf
@@ -69,9 +75,14 @@ jobs:
       - name: Build Package
         run: |
           cd $SDK_HOME
+          echo "Linking source to SDK package directory..."
           ln -sf $GITHUB_WORKSPACE package/${{ env.PACKAGE_NAME }}
+          echo "Starting package build..."
           make defconfig
+          make package/${{ env.PACKAGE_NAME }}/clean
           make package/${{ env.PACKAGE_NAME }}/compile V=s
+          echo "Build completed. Listing output files..."
+          find bin/ -type f -name "*.ipk" -exec ls -lh {} \;
           find bin/ -type f -name "*.ipk" -exec cp {} $GITHUB_WORKSPACE/ \;
 
       - name: Upload Release Assets
@@ -89,10 +100,12 @@ jobs:
     steps:
       - name: Notify External Service
         run: |
-          if [ -n "${{ secrets.TRIGGER_URL }}" ]; then
+          if [[ -n "${{ secrets.TRIGGER_URL }}" ]]; then
+            echo "Notifying external service..."
             curl -X POST -H "Content-Type: application/json" \
                  -H "Authorization: Bearer ${{ secrets.TRIGGER_TOKEN }}" \
                  -d '{"event":"release","repository":"${{ github.repository }}","ref":"${{ github.ref }}"}' \
                  "${{ secrets.TRIGGER_URL }}"
           else
             echo "No TRIGGER_URL provided, skipping notification."
+          fi
