@@ -68,21 +68,19 @@ jobs:
           cp feeds.conf.default feeds.conf
           sed -i 's#git.openwrt.org/openwrt/openwrt#github.com/openwrt/openwrt#' feeds.conf
           sed -i 's#git.openwrt.org/feed/packages#github.com/openwrt/packages#' feeds.conf
-          sed -i 's#git.openwrt.org/project/luci#github.com/openwrt/luci#' feeds.conf
-          sed -i 's#git.openwrt.org/feed/telephony#github.com/openwrt/telephony#' feeds.conf
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          echo "Feeds configured successfully."
-          
+          make defconfig
+
       - name: Build Package
         run: |
           cd $SDK_HOME
           echo "Linking source to SDK package directory..."
           ln -sf $GITHUB_WORKSPACE package/${{ env.PACKAGE_NAME }}
+          export TERM=dumb
           echo "Cleaning previous builds..."
           make package/${{ env.PACKAGE_NAME }}/clean V=s
           echo "Starting package build..."
-          make defconfig
           make package/${{ env.PACKAGE_NAME }}/compile -j1 V=s
           echo "Build completed. Listing output files..."
           find bin/ -type f -name "*.ipk" -exec ls -lh {} \;
